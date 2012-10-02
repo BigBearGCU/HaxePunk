@@ -43,6 +43,7 @@ class World extends Tweener
 		_classCount = new Hash<Int>();
 		_typeCount = new Hash<Int>();
 		_recycled = new Hash<Entity>();
+		_entityNames = new Hash<Entity>();
 	}
 
 	/**
@@ -134,12 +135,11 @@ class World extends Tweener
 	 * @param	e		Entity object you want to add.
 	 * @return	The added Entity object.
 	 */
-	public function add(e:Entity):Entity
+	public function add<E:Entity>(e:E):E
 	{
 		var fe:FriendEntity = e;
 		if (fe._world != null) return e;
 		_add.push(e);
-		fe._world = this;
 		return e;
 	}
 
@@ -148,12 +148,11 @@ class World extends Tweener
 	 * @param	e		Entity object you want to remove.
 	 * @return	The removed Entity object.
 	 */
-	public function remove(e:Entity):Entity
+	public function remove<E:Entity>(e:E):E
 	{
 		var fe:FriendEntity = e;
 		if (fe._world != this) return e;
 		_remove.push(e);
-		fe._world = null;
 		return e;
 	}
 
@@ -168,7 +167,6 @@ class World extends Tweener
 		{
 			e = cast(fe, Entity);
 			_remove.push(e);
-			fe._world = null;
 			fe = fe._updateNext;
 		}
 	}
@@ -177,9 +175,8 @@ class World extends Tweener
 	 * Adds multiple Entities to the world.
 	 * @param	...list		Several Entities (as arguments) or an Array/Vector of Entities.
 	 */
-	public function addList(list:Array<Entity>)
+	public function addList<E:Entity>(list:Iterable<E>)
 	{
-		var e:Entity;
 		for (e in list) add(e);
 	}
 
@@ -187,9 +184,8 @@ class World extends Tweener
 	 * Removes multiple Entities from the world.
 	 * @param	...list		Several Entities (as arguments) or an Array/Vector of Entities.
 	 */
-	public function removeList(list:Array<Entity>)
+	public function removeList<E:Entity>(list:Iterable<E>)
 	{
-		var e:Entity;
 		for (e in list) remove(e);
 	}
 
@@ -231,7 +227,7 @@ class World extends Tweener
 	 * @param	addToWorld		Add it to the World immediately.
 	 * @return	The new Entity object.
 	 */
-	public function create(classType:Class<Dynamic>, addToWorld:Bool = true):Entity
+	public function create<E:Entity>(classType:Class<E>, addToWorld:Bool = true):E
 	{
 		var className:String = Type.getClassName(classType);
 		var fe:FriendEntity = _recycled.get(className);
@@ -241,7 +237,7 @@ class World extends Tweener
 			fe._recycleNext = null;
 		}
 		else fe = Type.createInstance(classType, []);
-		var e:Entity = cast(fe, Entity);
+		var e:E = cast fe;
 		if (addToWorld) return add(e);
 		return e;
 	}
@@ -252,7 +248,7 @@ class World extends Tweener
 	 * @param	e		The Entity to recycle.
 	 * @return	The recycled Entity.
 	 */
-	public function recycle(e:Entity):Entity
+	public function recycle<E:Entity>(e:E):E
 	{
 		var fe:FriendEntity = e;
 		if (fe._world != this) return e;
@@ -585,14 +581,14 @@ class World extends Tweener
 	 * @param	rHeight		Height of the rectangle.
 	 * @param	into		The Array or Vector to populate with collided Entities.
 	 */
-	public function collideRectInto(type:String, rX:Float, rY:Float, rWidth:Float, rHeight:Float, into:Array<Entity>)
+	public function collideRectInto<E:Entity>(type:String, rX:Float, rY:Float, rWidth:Float, rHeight:Float, into:Array<E>)
 	{
-		var e:Entity,
+		var e:E,
 			fe:FriendEntity = _typeFirst.get(type),
 			n:Int = into.length;
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
+			e = cast fe;
 			if (e.collideRect(e.x, e.y, rX, rY, rWidth, rHeight)) into[n ++] = e;
 			fe = fe._typeNext;
 		}
@@ -607,7 +603,7 @@ class World extends Tweener
 	 * @param	radius		The radius of the circle.
 	 * @param	into		The Array or Vector to populate with collided Entities.
 	 */
-	public function collideCircleInto(type:String, circleX:Float, circleY:Float, radius:Float , into:Array<Entity>)
+	public function collideCircleInto<E:Entity>(type:String, circleX:Float, circleY:Float, radius:Float , into:Array<E>)
 	{
 		var e:Entity,
 			fe:FriendEntity = _typeFirst.get(type),
@@ -616,8 +612,8 @@ class World extends Tweener
 		radius *= radius;//Square it to avoid the square root
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
-			if (HXP.distanceSquared(circleX, circleY, e.x, e.y) < radius) into[n ++] = e;
+			e = cast fe;
+			if (HXP.distanceSquared(circleX, circleY, e.x, e.y) < radius) into[n ++] = cast e;
 			fe = fe._typeNext;
 		}
 	}
@@ -631,14 +627,14 @@ class World extends Tweener
 	 * @param	into		The Array or Vector to populate with collided Entities.
 	 * @return	The provided Array.
 	 */
-	public function collidePointInto(type:String, pX:Float, pY:Float, into:Array<Entity>)
+	public function collidePointInto<E:Entity>(type:String, pX:Float, pY:Float, into:Array<E>)
 	{
-		var e:Entity,
+		var e:E,
 			fe:FriendEntity = _typeFirst.get(type),
 			n:Int = into.length;
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
+			e = cast fe;
 			if (e.collidePoint(e.x, e.y, pX, pY)) into[n ++] = e;
 			fe = fe._typeNext;
 		}
@@ -844,13 +840,13 @@ class World extends Tweener
 	 * @param	c		The Class type to check.
 	 * @return	The Entity.
 	 */
-	public function classFirst(c:Class<Dynamic>):Entity
+	public function classFirst<E:Entity>(c:Class<E>):E
 	{
 		if (_updateFirst == null) return null;
 		var fe:FriendEntity = _updateFirst;
 		while (fe != null)
 		{
-			if (Std.is(fe, c)) return cast(fe, Entity);
+			if (Std.is(fe, c)) return cast fe;
 			fe = fe._updateNext;
 		}
 		return null;
@@ -925,7 +921,6 @@ class World extends Tweener
 	private inline function getUniqueTypes():Int
 	{
 		var i:Int = 0;
-		var type:String;
 		for (type in _typeCount) i++;
 		return i;
 	}
@@ -936,13 +931,13 @@ class World extends Tweener
 	 * @param	into		The Array or Vector to populate.
 	 * @return	The same array, populated.
 	 */
-	public function getType(type:String, into:Array<Entity>)
+	public function getType<E:Entity>(type:String, into:Array<E>)
 	{
 		var fe:FriendEntity = _typeFirst.get(type),
 			n:Int = into.length;
 		while (fe != null)
 		{
-			into[n++] = cast(fe, Entity);
+			into[n++] = cast fe;
 			fe = fe._typeNext;
 		}
 	}
@@ -953,14 +948,14 @@ class World extends Tweener
 	 * @param	into		The Array or Vector to populate.
 	 * @return	The same array, populated.
 	 */
-	public function getClass(c:Class<Dynamic>, into:Array<Entity>)
+	public function getClass<E:Entity>(c:Class<E>, into:Array<E>)
 	{
 		var fe:FriendEntity = _updateFirst,
 			n:Int = into.length;
 		while (fe != null)
 		{
 			if (Std.is(fe, c))
-				into[n++] = cast(fe, Entity);
+				into[n++] = cast fe;
 			fe = fe._updateNext;
 		}
 	}
@@ -971,14 +966,14 @@ class World extends Tweener
 	 * @param	into		The Array or Vector to populate.
 	 * @return	The same array, populated.
 	 */
-	public function getLayer(layer:Int, into:Array<Entity>)
+	public function getLayer<E:Entity>(layer:Int, into:Array<E>)
 	{
-		var e:Entity,
+		var e:E,
 			fe:FriendEntity = _renderLast[layer],
 			n:Int = into.length;
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
+			e = cast fe;
 			into[n ++] = e;
 			fe = fe._updatePrev;
 		}
@@ -989,17 +984,27 @@ class World extends Tweener
 	 * @param	into		The Array or Vector to populate.
 	 * @return	The same array, populated.
 	 */
-	public function getAll(into:Array<Entity>)
+	public function getAll<E:Entity>(into:Array<E>)
 	{
-		var e:Entity,
+		var e:E,
 			fe:FriendEntity = _updateFirst,
 			n:Int = into.length;
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
+			e = cast fe;
 			into[n ++] = e;
 			fe = fe._updateNext;
 		}
+	}
+	
+	/**
+	 * Returns the Entity with the instance name, or null if none exists
+	 * @param	name
+	 * @return
+	 */
+	public function getInstance(name:String):Entity
+	{
+		return _entityNames.get(name);
 	}
 
 	/**
@@ -1023,9 +1028,11 @@ class World extends Tweener
 				}
 				fe._added = false;
 				e.removed();
+				fe._world = null;
 				removeUpdate(e);
 				removeRender(e);
 				if (fe._type != "") removeType(e);
+				if (fe._name != "") unregisterName(e);
 				if (e.autoClear && e.hasTween) e.clearTweens();
 			}
 			HXP.clear(_remove);
@@ -1038,9 +1045,11 @@ class World extends Tweener
 			{
 				fe = e;
 				fe._added = true;
+				fe._world = this;
 				addUpdate(e);
 				addRender(e);
 				if (fe._type != "") addType(e);
+				if (fe._name != "") registerName(e);
 				e.added();
 			}
 			HXP.clear(_add);
@@ -1179,6 +1188,20 @@ class World extends Tweener
 		fe._typeNext = fe._typePrev = null;
 		_typeCount.set(fe._type, _typeCount.get(fe._type) - 1);
 	}
+	
+	/** @private Register the entities instance name. */
+	public function registerName(e:Entity)
+	{
+		var fe:FriendEntity = e;
+		_entityNames.set(fe._name, e);
+	}
+	
+	/** @private Unregister the entities instance name. */
+	public function unregisterName(e:Entity):Void
+	{
+		var fe:FriendEntity = e;
+		_entityNames.remove(fe._name);
+	}
 
 	/** @private Calculates the squared distance between two rectangles. */
 	private static function squareRects(x1:Float, y1:Float, w1:Float, h1:Float, x2:Float, y2:Float, w2:Float, h2:Float):Float
@@ -1252,4 +1275,5 @@ class World extends Tweener
 	public var _typeFirst:Hash<FriendEntity>;
 	private var _typeCount:Hash<Int>;
 	private var _recycled:Hash<Entity>;
+	private var _entityNames:Hash<Entity>;
 }

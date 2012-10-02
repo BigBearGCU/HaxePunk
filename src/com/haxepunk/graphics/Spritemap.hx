@@ -71,9 +71,11 @@ class Spritemap extends Image
 	 */
 	override public function updateBuffer(clearBefore:Bool = false)
 	{
+#if neko
+		if (_width == null) return;
+#end
 #if (cpp || neko)
 		if (flipped) _rect.x = (_width - _rect.width) - _rect.x;
-		return;
 #end
 		// get position of the current frame
 		_rect.x = _rect.width * _frame;

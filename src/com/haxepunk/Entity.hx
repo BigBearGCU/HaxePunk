@@ -15,6 +15,7 @@ typedef FriendEntity = {
 	private var _added:Bool;
 	private var _type:String;
 	private var _layer:Int;
+	private var _name:String;
 
 	private var _updatePrev:FriendEntity;
 	private var _updateNext:FriendEntity;
@@ -95,6 +96,7 @@ class Entity extends Tweener
 		width = height = 0;
 		_moveX = _moveY = 0;
 		_type = "";
+		_name = "";
 
 		HITBOX = new Mask();
 		_point = HXP.point;
@@ -235,7 +237,6 @@ class Entity extends Tweener
 			if (a != null)
 			{
 				var e:Entity;
-				var type:String;
 				for (type in a)
 				{
 					e = collide(type, x, y);
@@ -254,7 +255,7 @@ class Entity extends Tweener
 	 * @param	y		Virtual y position to place this Entity.
 	 * @return	The Entity if they overlap, or null if they don't.
 	 */
-	public function collideWith(e:Entity, x:Float, y:Float):Entity
+	public function collideWith<E:Entity>(e:E, x:Float, y:Float):E
 	{
 		_x = this.x; _y = this.y;
 		this.x = x; this.y = y;
@@ -267,7 +268,7 @@ class Entity extends Tweener
 		{
 			if (_mask == null)
 			{
-				if (e._mask == null || e._mask.collide(HITBOX))
+				if ((untyped e._mask) == null || (untyped e._mask).collide(HITBOX))
 				{
 					this.x = _x; this.y = _y;
 					return e;
@@ -275,7 +276,7 @@ class Entity extends Tweener
 				this.x = _x; this.y = _y;
 				return null;
 			}
-			if (_mask.collide(e._mask != null ? e._mask : e.HITBOX))
+			if (_mask.collide((untyped e._mask) != null ? (untyped e._mask) : (untyped e.HITBOX)))
 			{
 				this.x = _x; this.y = _y;
 				return e;
@@ -357,11 +358,11 @@ class Entity extends Tweener
 	 * @param	array		The Array or Vector object to populate.
 	 * @return	The array, populated with all collided Entities.
 	 */
-	public function collideInto(type:String, x:Float, y:Float, array:Array<Entity>)
+	public function collideInto<E:Entity>(type:String, x:Float, y:Float, array:Array<E>)
 	{
 		if (_world == null) return;
 
-		var e:Entity,
+		var e:E,
 			fe:FriendEntity = _world._typeFirst.get(type);
 		if (!collidable || fe == null) return;
 
@@ -373,14 +374,14 @@ class Entity extends Tweener
 		{
 			while (fe != null)
 			{
-				e = cast(fe, Entity);
+				e = cast fe;
 				if (x - originX + width > e.x - e.originX
 				&& y - originY + height > e.y - e.originY
 				&& x - originX < e.x - e.originX + e.width
 				&& y - originY < e.y - e.originY + e.height
 				&& e.collidable && e != this)
 				{
-					if (e._mask == null || e._mask.collide(HITBOX)) array[n++] = e;
+					if ((untyped e._mask) == null || (untyped e._mask).collide(HITBOX)) array[n++] = e;
 				}
 				fe = fe._typeNext;
 			}
@@ -390,14 +391,14 @@ class Entity extends Tweener
 
 		while (fe != null)
 		{
-			e = cast(fe, Entity);
+			e = cast fe;
 			if (x - originX + width > e.x - e.originX
 			&& y - originY + height > e.y - e.originY
 			&& x - originX < e.x - e.originX + e.width
 			&& y - originY < e.y - e.originY + e.height
 			&& e.collidable && e != this)
 			{
-				if (_mask.collide(e._mask != null ? e._mask : e.HITBOX)) array[n++] = e;
+				if (_mask.collide((untyped e._mask) != null ? (untyped e._mask) : (untyped e.HITBOX))) array[n++] = e;
 			}
 			fe = fe._typeNext;
 		}
@@ -413,10 +414,9 @@ class Entity extends Tweener
 	 * @param	array		The Array or Vector object to populate.
 	 * @return	The array, populated with all collided Entities.
 	 */
-	public function collideTypesInto(types:Array<String>, x:Float, y:Float, array:Array<Entity>)
+	public function collideTypesInto<E:Entity>(types:Array<String>, x:Float, y:Float, array:Array<E>)
 	{
 		if (_world == null) return;
-		var type:String;
 		for (type in types) collideInto(type, x, y, array);
 	}
 
@@ -558,6 +558,22 @@ class Entity extends Tweener
 		return _graphic;
 	}
 
+	public var name(getName, setName):String;
+	private inline function getName():String { return _name; }
+	private function setName(value:String):String
+	{
+		if (_name == value) return _name;
+		if (!_added)
+		{
+			_name = value;
+			return _name;
+		}
+		if (_name != "") _world.unregisterName(this);
+		_name = value;
+		if (value != "") _world.registerName(this);
+		return _name;
+	}
+
 	/**
 	 * Adds the graphic to the Entity via a Graphiclist.
 	 * @param	g		Graphic to add.
@@ -596,7 +612,7 @@ class Entity extends Tweener
 	 */
 	public function setHitboxTo(o:Dynamic)
 	{
-#if flash
+#if (flash || android)
 		width = Reflect.getProperty(o, "width");
 		height = Reflect.getProperty(o, "height");
 
@@ -830,6 +846,7 @@ class Entity extends Tweener
 	private var _added:Bool;
 	private var _type:String;
 	private var _layer:Int;
+	private var _name:String;
 
 	private var _updatePrev:FriendEntity;
 	private var _updateNext:FriendEntity;
